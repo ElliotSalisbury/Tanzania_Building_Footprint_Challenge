@@ -46,7 +46,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # call the script to make the tifs smaller
-    subprocess.call(['./make_tiffs_smaller.sh', args.in_dir, args.out_dir, str(args.window_size), str(args.step_size)])
+    # subprocess.call(['./make_tiffs_smaller.sh', args.in_dir, args.out_dir, str(args.window_size), str(args.step_size)])
 
     print("======= PROCESSING SMALLER TILES' BOUNDING BOXES =======")
     output_csv_rows_all = []
@@ -64,15 +64,17 @@ if __name__ == '__main__':
         shapeid_to_class = {}
         shapeid_to_shape = {}
         shapes = []
-        for feature in data['features']:
-            s = shape(feature['geometry'])
-            id = feature['properties']['id']
-            condition = feature['properties']['condition']
+        for id, feature in enumerate(data['features']):
+            if 'geometry' in feature and 'coordinates' in feature['geometry'] and len(feature['geometry']['coordinates']) > 0:
+                s = Polygon(feature['geometry']['coordinates'][0])
+                s = Polygon.from_bounds(*s.bounds)
+                condition = feature['properties']['condition']
 
-            shapeid_to_shape[id] = s
-            shapeid_to_class[id] = condition
+                if condition:
+                    shapeid_to_shape[id] = s
+                    shapeid_to_class[id] = condition
         geojson_cs = osr.SpatialReference()
-        geojson_cs.SetFromUserInput(data['crs']['properties']['name'])
+        geojson_cs.SetFromUserInput(str(data['crs']['properties']['name']))
 
 
         # for each smaller tif in the output file that matches our filename
@@ -82,10 +84,13 @@ if __name__ == '__main__':
 
             shapeids_in_tif = []
             for shapeid in shapeid_to_shape:
-                shape = shapeid_to_shape[shapeid]
-                intersection = rect.intersection(shape)
-                if intersection.area > 0:
-                    shapeids_in_tif.append(shapeid)
+                try:
+                    shape = shapeid_to_shape[shapeid]
+                    intersection = rect.intersection(shape)
+                    if intersection.area > 0:
+                        shapeids_in_tif.append(shapeid)
+                except:
+                    continue
 
             output_csv_rows = []
             for shapeid in shapeids_in_tif:
@@ -97,8 +102,8 @@ if __name__ == '__main__':
 
                 p_minx = ((s_minx - t_minx) / (t_maxx - t_minx)) * w
                 p_maxx = ((s_maxx - t_minx) / (t_maxx - t_minx)) * w
-                p_miny = ((s_miny - t_miny) / (t_maxy - t_miny)) * h
-                p_maxy = ((s_maxy - t_miny) / (t_maxy - t_miny)) * h
+                p_maxy = (1-((s_miny - t_miny) / (t_maxy - t_miny))) * h
+                p_miny = (1-((s_maxy - t_miny) / (t_maxy - t_miny))) * h
 
                 p_minx = int(max(p_minx, 0))
                 p_miny = int(max(p_miny, 0))

@@ -23,9 +23,9 @@ for file in ${IN_FOLDER}/*.tif; do
 
     # loop over every window in the larger_tiff
     W=0
-    while (($W < $WIDTH - $WINSIZE)); do
+    while (($W < $WIDTH)); do
         H=0
-        while (($H < $HEIGHT - $WINSIZE)); do
+        while (($H < $HEIGHT)); do
             OUT_FILEPATH_SMALL="${OUT_FOLDER_TIF}/${FILENAME}.${W}_${H}.tif"
             OUT_FILEPATH_SMALL_JPG="${OUT_FOLDER_JPG}/${FILENAME}.${W}_${H}.jpg"
             gdal_translate -srcwin $W $H $WINSIZE $WINSIZE $IN_FILEPATH $OUT_FILEPATH_SMALL
