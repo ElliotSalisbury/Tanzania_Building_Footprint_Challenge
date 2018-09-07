@@ -112,7 +112,8 @@ if __name__ == '__main__':
 
                 classification = shapeid_to_class[shapeid]
 
-                row = (small_tif_file, p_minx, p_miny, p_maxx, p_maxy, classification)
+                if p_minx < p_maxx and p_miny < p_maxy:
+                    row = (small_tif_file, p_minx, p_miny, p_maxx, p_maxy, classification)
 
                 output_csv_rows.append(row)
 
