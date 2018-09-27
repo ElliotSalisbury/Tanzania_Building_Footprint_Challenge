@@ -10,9 +10,10 @@ mkdir -p "${OUT_FOLDER_JPG}"
 
 for file in ${IN_FOLDER}/*.tif; do
     FILENAME=${file##*/}
-    echo ${FILENAME}
-
     IN_FILEPATH="${IN_FOLDER}/${FILENAME}"
+    FILENAME=${FILENAME%.*}
+
+    echo ${FILENAME}
 
     SIZE=$(gdalinfo $IN_FILEPATH | grep "Size is" | cut -c 9-)
     IFS=', ' read -r -a array <<< $SIZE
@@ -26,10 +27,18 @@ for file in ${IN_FOLDER}/*.tif; do
     while (($W < $WIDTH)); do
         H=0
         while (($H < $HEIGHT)); do
-            OUT_FILEPATH_SMALL="${OUT_FOLDER_TIF}/${FILENAME}.${W}_${H}.tif"
-            OUT_FILEPATH_SMALL_JPG="${OUT_FOLDER_JPG}/${FILENAME}.${W}_${H}.jpg"
-            gdal_translate -srcwin $W $H $WINSIZE $WINSIZE $IN_FILEPATH $OUT_FILEPATH_SMALL
-            gdal_translate -srcwin $W $H $WINSIZE $WINSIZE -of JPEG $IN_FILEPATH $OUT_FILEPATH_SMALL_JPG
+            OUT_FILEPATH_SMALL="${OUT_FOLDER_TIF}/${FILENAME}_${W}_${H}.tif"
+            OUT_FILEPATH_SMALL_JPG="${OUT_FOLDER_JPG}/${FILENAME}_${W}_${H}.jpg"
+
+            echo ${OUT_FILEPATH_SMALL}
+
+            if [ ! -f "$OUT_FILEPATH_SMALL" ]; then
+                gdal_translate -srcwin $W $H $WINSIZE $WINSIZE $IN_FILEPATH $OUT_FILEPATH_SMALL
+            fi
+            if [ ! -f "$OUT_FILEPATH_SMALL_JPG" ]; then
+                gdal_translate -srcwin $W $H $WINSIZE $WINSIZE -of JPEG $IN_FILEPATH $OUT_FILEPATH_SMALL_JPG
+            fi
+
             let H=H+WINSTEP
         done
         let W=W+WINSTEP

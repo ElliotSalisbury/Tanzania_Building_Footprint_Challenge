@@ -143,9 +143,9 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
 
 def create_generators(args):
     transform_generator = random_transform_generator(
-        min_rotation=-0.1,
+        min_rotation=-0.1, #radians
         max_rotation=0.1,
-        min_translation=(-0.1, -0.1),
+        min_translation=(-0.1, -0.1), #could be pixels or percentage
         max_translation=(0.1, 0.1),
         min_shear=-0.1,
         max_shear=0.1,
