@@ -44,6 +44,7 @@ def split_into_train_set(csv_file, validation_percent, window_size):
 
     # we only want images with bounding boxes in our validation set
     bounds_in_im = collections.defaultdict(list)
+    ims_per_tile = collections.defaultdict(set)
     all_im_rows = collections.defaultdict(list)
     with open(csv_file, "r") as f:
         reader = csv.reader(f)
@@ -55,13 +56,19 @@ def split_into_train_set(csv_file, validation_percent, window_size):
             if classification:
                 bounds_in_im[impath].append(((int(tlx), int(tly)), (int(brx), int(bry)), classification))
 
+                filename = os.path.basename(impath)
+                filename = os.path.splitext(filename)[0]
+                *filenames, W, H = filename.split("_")
+                filename = "_".join(filenames)
+                ims_per_tile[filename].add(impath)
+
     validation_count = int(len(bounds_in_im) * validation_percent)
     validation_images = random.sample(bounds_in_im.keys(), validation_count)
-    train_images = set(all_im_rows.keys()).difference(validation_images)
+    exclude_set = set(validation_images)
 
     validation_rows = []
     for i, im in enumerate(validation_images):
-        print("\t{}/{} {}".format(i, len(train_images), im))
+        print("\t{}/{} {}".format(i, len(validation_images), im))
         validation_rows.extend(all_im_rows[im])
 
         #remove anything from the train images that might overlapm the validation images
@@ -72,22 +79,22 @@ def split_into_train_set(csv_file, validation_percent, window_size):
         W = int(W)
         H = int(H)
 
-        for t_im in train_images.copy():
+        for t_im in ims_per_tile[filename].copy():
             t_filename = os.path.basename(t_im)
             t_filename = os.path.splitext(t_filename)[0]
             *t_filenames, t_W, t_H = t_filename.split("_")
-            t_filename = "_".join(t_filenames)
 
             t_W = int(t_W)
             t_H = int(t_H)
 
-            if t_filename == filename:
-                if abs(W-t_W) < window_size and abs(H-t_H) < window_size:
-                    train_images.remove(t_im)
-
-                    print("\t\texcluding: {}".format(t_im))
+            if abs(W-t_W) < window_size and abs(H-t_H) < window_size:
+                ims_per_tile[filename].remove(t_im)
+                exclude_set.add(t_im)
 
 
+                print("\t\texcluding: {}".format(t_im))
+
+    train_images = set(all_im_rows.keys()).difference(exclude_set)
     train_rows = []
     for im in train_images:
         train_rows.extend(all_im_rows[im])
@@ -106,7 +113,7 @@ if __name__ == '__main__':
     parser.add_argument('out_dir', type=str, help='the location of where we store the output')
     parser.add_argument('--window_size', type=int, default=1024, help='the size of the output tiles')
     parser.add_argument('--step_size', type=int, default=256, help='the size of the steps between output tiles')
-    parser.add_argument('-validation_percent', type=float, default=0.2,
+    parser.add_argument('-validation_percent', type=float, default=0.005,
                         help='The percentage of images we use in the validation set')
 
     args = parser.parse_args()

@@ -30,6 +30,7 @@ from keras_retinanet.utils.anchors import make_shapes_callback, anchor_targets_b
 from keras_retinanet.utils.keras_version import check_keras_version
 from keras_retinanet.utils.model import freeze as freeze_model
 from keras_retinanet.utils.transform import random_transform_generator
+from augmented_generator import AugmentedGenerator
 
 
 def makedirs(path):
@@ -155,7 +156,7 @@ def create_generators(args):
         flip_y_chance=0.5,
     )
 
-    train_generator = CSVGenerator(
+    train_generator = AugmentedGenerator(
         args.annotations,
         args.classes,
         transform_generator=transform_generator,
@@ -260,32 +261,6 @@ def parse_args(args):
 
     return check_args(parser.parse_args(args))
 
-from keras_retinanet.models.resnet import ResNetBackbone
-from keras_retinanet.models.retinanet import *
-import keras_resnet.models
-class ResNet18Backbone(ResNetBackbone):
-    def retinanet(self, *args, **kwargs):
-        # choose default input
-        if 'inputs' not in kwargs or kwargs['inputs'] is None:
-            inputs = keras.layers.Input(shape=(None, None, 3))
-        else:
-            inputs = kwargs['inputs']
-
-        resnet = keras_resnet.models.ResNet18(inputs, include_top=False, freeze_bn=True)
-
-        # invoke modifier if given
-        if kwargs['modifier']:
-            resnet = kwargs['modifier'](resnet)
-
-        if len(args) > 0:
-            num_classes = args[0]
-        else:
-            num_classes = 1000
-
-        # create the full model
-        return retinanet(inputs=inputs, num_classes=num_classes, backbone_layers=resnet.outputs[1:])
-
-
 def main(args=None):
     # parse arguments
     if args is None:
@@ -294,7 +269,6 @@ def main(args=None):
 
     # create object that stores backbone information
     backbone = models.backbone(args.backbone)
-    # backbone = ResNet18Backbone(args.backbone)
 
     # make sure keras is the minimum required version
     check_keras_version()
