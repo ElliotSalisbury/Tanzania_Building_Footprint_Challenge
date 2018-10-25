@@ -1,6 +1,6 @@
 import albumentations as A
 from keras_retinanet.preprocessing.csv_generator import CSVGenerator
-
+import numpy as np
 
 class AugmentedGenerator(CSVGenerator):
     def __init__(
@@ -13,11 +13,11 @@ class AugmentedGenerator(CSVGenerator):
         super(AugmentedGenerator, self).__init__(csv_data_file, csv_class_file, base_dir, **kwargs)
 
     def preprocess_group_entry(self, image, annotations):
-        # preprocess the image
-        image = self.preprocess_image(image)
-
         # augment images
         image, annotations = self.augment_image(image, annotations)
+
+        # preprocess the image
+        image = self.preprocess_image(image)
 
         # randomly transform image and annotations
         image, annotations = self.random_transform_group_entry(image, annotations)
@@ -26,26 +26,33 @@ class AugmentedGenerator(CSVGenerator):
         image, image_scale = self.resize_image(image)
 
         # apply resizing to annotations too
-        annotations[:, :4] *= image_scale
+        annotations['bboxes'] *= image_scale
 
         return image, annotations
 
     def augment_image(self, image, annotations):
-        annotation = {'image': image, 'bboxes': annotations[:, :4], 'category_id': annotations[:, 4]}
+        new_annotations = annotations
 
-        aug = self.get_aug([
-            A.VerticalFlip(),
-            A.HorizontalFlip(),
-            A.RGBShift(),
-            A.Blur(),
-            A.GaussNoise(),
-        ])
-        augmented = aug(**annotation)
+        if annotations['bboxes'].any():
+            annotation = {'image': image, 'bboxes': annotations['bboxes'], 'category_id': annotations['labels']}
 
-        image = augmented['image']
+            aug = self.get_aug([
+                A.VerticalFlip(),
+                A.HorizontalFlip(),
+                A.RGBShift(),
+                A.Blur(blur_limit=7),
+                A.GaussNoise(),
+                A.OpticalDistortion(distort_limit=0.2),
+                A.GridDistortion(),
+                A.ShiftScaleRotate(p=0.75, shift_limit=0.1, rotate_limit=45, scale_limit=0.2),
+            ], min_area=(1024*0.05)**2)
 
-        annotations[:, :4] = augmented['bboxes']
-        annotations[:, 4] = augmented['category_id']
+            augmented = aug(**annotation)
+
+            image = augmented['image']
+
+            annotations['bboxes'] = np.array(augmented['bboxes'])
+            annotations['labels'] = np.array(augmented['category_id'])
 
         return image, annotations
 
