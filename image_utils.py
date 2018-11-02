@@ -26,13 +26,15 @@ def large_tiff_to_windows(filepath, window_size=1024, window_step=512):
     row_start_index = np.arange(0, rows - window_size, step=window_step)
     col_start_index = np.arange(0, cols - window_size, step=window_step)
 
+    total = len(row_start_index) * len(col_start_index)
+
     for row in row_start_index:
         for col in col_start_index:
             ds_array = ds.ReadAsArray(int(col), int(row), window_size, window_size)
             satim = np.moveaxis(ds_array, 0, -1)
             satim = cv2.cvtColor(satim, cv2.COLOR_RGB2BGR)
 
-            yield satim, [col, row]
+            yield satim, [col, row], total
 
 
 def non_max_suppression_fast(boxes, overlapThresh):
@@ -44,11 +46,11 @@ def non_max_suppression_fast(boxes, overlapThresh):
     pick = []
 
     # grab the coordinates of the bounding boxes
-    x1 = boxes[:, 0]
-    y1 = boxes[:, 1]
-    x2 = boxes[:, 2]
-    y2 = boxes[:, 3]
-    score = boxes[:, 4]
+    x1 = boxes[:, 0].astype(np.float64)
+    y1 = boxes[:, 1].astype(np.float64)
+    x2 = boxes[:, 2].astype(np.float64)
+    y2 = boxes[:, 3].astype(np.float64)
+    score = boxes[:, 4].astype(np.float64)
 
     # compute the area of the bounding boxes and sort the bounding
     # boxes by the bottom-right y-coordinate of the bounding box

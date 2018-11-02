@@ -1,8 +1,8 @@
 import albumentations as A
-from keras_retinanet.preprocessing.csv_generator import CSVGenerator
+from tif_generator import TiffGenerator
 import numpy as np
 
-class AugmentedGenerator(CSVGenerator):
+class AugmentedGenerator(TiffGenerator):
     def __init__(
             self,
             csv_data_file,
@@ -20,13 +20,13 @@ class AugmentedGenerator(CSVGenerator):
         image = self.preprocess_image(image)
 
         # randomly transform image and annotations
-        image, annotations = self.random_transform_group_entry(image, annotations)
+        # image, annotations = self.random_transform_group_entry(image, annotations)
 
         # resize image
-        image, image_scale = self.resize_image(image)
+        # image, image_scale = self.resize_image(image)
 
         # apply resizing to annotations too
-        annotations['bboxes'] *= image_scale
+        # annotations['bboxes'] *= image_scale
 
         return image, annotations
 
